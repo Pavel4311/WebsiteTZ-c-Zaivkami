@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Создание заявки</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>📝 Создать заявку в ремонтную службу</h1>
+
+      <form id="requestForm">
+        <div class="form-group">
+          <label for="clientName">Имя клиента *</label>
+          <input type="text" id="clientName" name="clientName" required />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Телефон *</label>
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            placeholder="+7 900 123-45-67"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="address">Адрес *</label>
+          <input type="text" id="address" name="address" required />
+        </div>
+
+        <div class="form-group">
+          <label for="problemText">Описание проблемы *</label>
+          <textarea
+            id="problemText"
+            name="problemText"
+            rows="5"
+            required
+          ></textarea>
+        </div>
+
+        <button type="submit">Отправить заявку</button>
+      </form>
+
+      <div id="message" class="message"></div>
+    </div>
+
+    <script src="/js/main.js"></script>
+  </body>
+</html>

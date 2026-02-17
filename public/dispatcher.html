@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Панель диспетчера</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      .nav-links {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+      }
+      .nav-links a {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .filters {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      label {
+        font-weight: 600;
+        color: #555;
+        font-size: 14px;
+      }
+      select,
+      button {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      select:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+      button {
+        background: #667eea;
+        color: white;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+      }
+      button:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #333;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+      tr:hover {
+        background: #f8f9fa;
+      }
+      .status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .status-new {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+      .status-assigned {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+      .status-in_progress {
+        background: #e8f5e9;
+        color: #388e3c;
+      }
+      .status-done {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      .status-canceled {
+        background: #ffebee;
+        color: #c62828;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-assign {
+        background: #4caf50;
+        color: white;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .btn-assign:hover {
+        background: #45a049;
+      }
+      .btn-cancel {
+        background: #f44336;
+        color: white;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .btn-cancel:hover {
+        background: #da190b;
+      }
+      .btn-assign:disabled,
+      .btn-cancel:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+      }
+      .modal-content {
+        background: white;
+        margin: 10% auto;
+        padding: 30px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 400px;
+      }
+      .modal h2 {
+        margin-bottom: 20px;
+      }
+      .modal select {
+        width: 100%;
+        margin-bottom: 20px;
+      }
+      .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+      .btn-secondary {
+        background: #6c757d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="nav-links">
+        <a href="/">← Создать заявку</a>
+        <a href="/master.html">Панель мастера →</a>
+      </div>
+
+      <h1>🎯 Панель диспетчера</h1>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label>Фильтр по статусу:</label>
+          <select id="statusFilter">
+            <option value="">Все</option>
+            <option value="new">Новые</option>
+            <option value="assigned">Назначены</option>
+            <option value="in_progress">В работе</option>
+            <option value="done">Выполнены</option>
+            <option value="canceled">Отменены</option>
+          </select>
+        </div>
+        <button onclick="loadRequests()">🔄 Обновить</button>
+      </div>
+
+      <table id="requestsTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Клиент</th>
+            <th>Телефон</th>
+            <th>Адрес</th>
+            <th>Проблема</th>
+            <th>Статус</th>
+            <th>Мастер ID</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="requestsBody">
+          <tr>
+            <td colspan="8" style="text-align: center">Загрузка...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Модальное окно назначения мастера -->
+    <div id="assignModal" class="modal">
+      <div class="modal-content">
+        <h2>Назначить мастера</h2>
+        <select id="masterSelect">
+          <option value="">Загрузка мастеров...</option>
+        </select>
+        <div class="modal-buttons">
+          <button class="btn-secondary" onclick="closeModal()">Отмена</button>
+          <button onclick="confirmAssign()">Назначить</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentRequestId = null;
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        console.log("🚀 Страница загружена, начинаем загрузку данных...");
+        await loadMasters();
+        await loadRequests();
+
+        document
+          .getElementById("statusFilter")
+          .addEventListener("change", loadRequests);
+      });
+
+      async function loadMasters() {
+        console.log("📥 Загрузка мастеров...");
+        try {
+          const response = await fetch(
+            "http://localhost:3000/api/users/role/master"
+          );
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const masters = await response.json();
+          console.log("✅ Загружено мастеров:", masters.length);
+          console.log("👥 Список мастеров:", masters);
+
+          const select = document.getElementById("masterSelect");
+          select.innerHTML = '<option value="">Выберите мастера...</option>';
+
+          masters.forEach((master) => {
+            const option = document.createElement("option");
+            option.value = master.id;
+            option.textContent = `${master.name} (ID: ${master.id})`;
+            select.appendChild(option);
+            console.log(
+              `  ➕ Добавлен мастер: ${master.name}, ID: ${master.id}`
+            );
+          });
+
+          console.log("✅ Мастера успешно загружены в выпадающий список");
+        } catch (error) {
+          console.error("❌ Ошибка загрузки мастеров:", error);
+          alert("Ошибка загрузки списка мастеров. Проверьте консоль.");
+        }
+      }
+
+      async function loadRequests() {
+        const statusFilter = document.getElementById("statusFilter").value;
+        const tbody = document.getElementById("requestsBody");
+
+        try {
+          let url = "http://localhost:3000/api/requests";
+          if (statusFilter) {
+            url += `?status=${statusFilter}`;
+          }
+
+          const response = await fetch(url);
+          const requests = await response.json();
+
+          if (requests.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="8" style="text-align: center;">Заявок нет</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = requests
+            .map(
+              (request) => `
+                    <tr>
+                        <td>${request.id}</td>
+                        <td>${request.clientName}</td>
+                        <td>${request.phone}</td>
+                        <td>${request.address}</td>
+                        <td>${request.problemText}</td>
+                        <td><span class="status status-${request.status}">${
+                request.status
+              }</span></td>
+                        <td>${request.assignedTo || "-"}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn-assign" 
+                                        onclick="openAssignModal(${request.id})"
+                                        ${
+                                          request.status !== "new"
+                                            ? "disabled"
+                                            : ""
+                                        }>
+                                    Назначить
+                                </button>
+                                <button class="btn-cancel" 
+                                        onclick="cancelRequest(${request.id})"
+                                        ${
+                                          request.status === "done" ||
+                                          request.status === "canceled"
+                                            ? "disabled"
+                                            : ""
+                                        }>
+                                    Отменить
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `
+            )
+            .join("");
+        } catch (error) {
+          console.error("Ошибка загрузки заявок:", error);
+          tbody.innerHTML =
+            '<tr><td colspan="8" style="text-align: center; color: red;">Ошибка загрузки</td></tr>';
+        }
+      }
+
+      function openAssignModal(requestId) {
+        console.log("📋 Открытие модального окна для заявки:", requestId);
+        currentRequestId = requestId;
+        document.getElementById("assignModal").style.display = "block";
+      }
+
+      function closeModal() {
+        document.getElementById("assignModal").style.display = "none";
+        currentRequestId = null;
+      }
+
+      async function confirmAssign() {
+        const masterId = document.getElementById("masterSelect").value;
+
+        if (!masterId) {
+          alert("Выберите мастера");
+          return;
+        }
+
+        console.log("📤 Назначение мастера:", {
+          requestId: currentRequestId,
+          masterId,
+        });
+
+        try {
+          const response = await fetch(
+            "http://localhost:3000/api/requests/assign",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                requestId: currentRequestId,
+                masterId: parseInt(masterId),
+              }),
+            }
+          );
+
+          const data = await response.json();
+          console.log("📥 Ответ сервера:", data);
+
+          if (response.ok) {
+            alert("✅ Мастер успешно назначен!");
+            closeModal();
+            await loadRequests();
+          } else {
+            alert(`❌ Ошибка: ${data.message || data.error}`);
+          }
+        } catch (error) {
+          console.error("❌ Ошибка назначения мастера:", error);
+          alert("Ошибка соединения с сервером");
+        }
+      }
+
+      async function cancelRequest(requestId) {
+        if (!confirm("Вы уверены, что хотите отменить эту заявку?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/requests/${requestId}/cancel`,
+            {
+              method: "POST",
+            }
+          );
+
+          if (response.ok) {
+            alert("Заявка отменена!");
+            await loadRequests();
+          } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.message || error.error}`);
+          }
+        } catch (error) {
+          console.error("Ошибка отмены заявки:", error);
+          alert("Ошибка соединения с сервером");
+        }
+      }
+
+      // Закрытие модального окна при клике вне его
+      window.onclick = function (event) {
+        const modal = document.getElementById("assignModal");
+        if (event.target == modal) {
+          closeModal();
+        }
+      };
+    </script>
+  </body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Панель мастера</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+      .nav-links {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 15px;
+      }
+      .nav-links a {
+        color: #11998e;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .master-selector {
+        margin-bottom: 30px;
+      }
+      .master-selector select {
+        padding: 10px 15px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        width: 300px;
+      }
+      button {
+        padding: 10px 20px;
+        background: #11998e;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+        margin-left: 10px;
+      }
+      button:hover {
+        background: #0e8070;
+        transform: translateY(-2px);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      th,
+      td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #333;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+      tr:hover {
+        background: #f8f9fa;
+      }
+      .status {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .status-assigned {
+        background: #fff3e0;
+        color: #f57c00;
+      }
+      .status-in_progress {
+        background: #e8f5e9;
+        color: #388e3c;
+      }
+      .status-done {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+      }
+      .btn-take {
+        background: #ff9800;
+        color: white;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .btn-take:hover {
+        background: #f57c00;
+      }
+      .btn-complete {
+        background: #4caf50;
+        color: white;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .btn-complete:hover {
+        background: #45a049;
+      }
+      .btn-take:disabled,
+      .btn-complete:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .info-box {
+        background: #e3f2fd;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #2196f3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="nav-links">
+        <a href="/">← Создать заявку</a>
+        <a href="/dispatcher.html">Панель диспетчера →</a>
+      </div>
+
+      <h1>🔧 Панель мастера</h1>
+
+      <div class="master-selector">
+        <label for="masterSelect">Выберите мастера:</label>
+        <select id="masterSelect">
+          <option value="">Выберите...</option>
+        </select>
+        <button onclick="loadMyRequests()">Загрузить мои заявки</button>
+      </div>
+
+      <div id="infoBox" class="info-box" style="display: none">
+        <strong>Мастер:</strong> <span id="masterName"></span><br />
+        <strong>Всего заявок:</strong> <span id="totalRequests">0</span>
+      </div>
+
+      <table id="requestsTable" style="display: none">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Клиент</th>
+            <th>Телефон</th>
+            <th>Адрес</th>
+            <th>Проблема</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="requestsBody"></tbody>
+      </table>
+    </div>
+
+    <script>
+      let currentMasterId = null;
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        await loadMasters();
+      });
+
+      async function loadMasters() {
+        try {
+          const response = await fetch(
+            "http://localhost:3000/api/users/role/master"
+          );
+          const masters = await response.json();
+
+          const select = document.getElementById("masterSelect");
+          masters.forEach((master) => {
+            const option = document.createElement("option");
+            option.value = master.id;
+            option.textContent = master.name;
+            select.appendChild(option);
+          });
+        } catch (error) {
+          console.error("Ошибка загрузки мастеров:", error);
+        }
+      }
+
+      async function loadMyRequests() {
+        const masterId = document.getElementById("masterSelect").value;
+
+        if (!masterId) {
+          alert("Выберите мастера");
+          return;
+        }
+
+        currentMasterId = parseInt(masterId);
+        const masterName =
+          document.getElementById("masterSelect").selectedOptions[0].text;
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/requests?assignedTo=${masterId}`
+          );
+          const requests = await response.json();
+
+          document.getElementById("infoBox").style.display = "block";
+          document.getElementById("masterName").textContent = masterName;
+          document.getElementById("totalRequests").textContent =
+            requests.length;
+
+          const tbody = document.getElementById("requestsBody");
+          const table = document.getElementById("requestsTable");
+
+          if (requests.length === 0) {
+            table.style.display = "table";
+            tbody.innerHTML =
+              '<tr><td colspan="7" style="text-align: center;">У вас нет назначенных заявок</td></tr>';
+            return;
+          }
+
+          table.style.display = "table";
+          tbody.innerHTML = requests
+            .map(
+              (request) => `
+                    <tr>
+                        <td>${request.id}</td>
+                        <td>${request.clientName}</td>
+                        <td>${request.phone}</td>
+                        <td>${request.address}</td>
+                        <td>${request.problemText}</td>
+                        <td><span class="status status-${request.status}">${
+                request.status
+              }</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                ${
+                                  request.status === "assigned"
+                                    ? `
+                                    <button class="btn-take" onclick="takeInProgress(${request.id})">
+                                        Взять в работу
+                                    </button>
+                                `
+                                    : ""
+                                }
+                                ${
+                                  request.status === "in_progress"
+                                    ? `
+                                    <button class="btn-complete" onclick="completeRequest(${request.id})">
+                                        Завершить
+                                    </button>
+                                `
+                                    : ""
+                                }
+                                ${
+                                  request.status === "done"
+                                    ? '<span style="color: #4caf50;">✓ Выполнено</span>'
+                                    : ""
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                `
+            )
+            .join("");
+        } catch (error) {
+          console.error("Ошибка загрузки заявок:", error);
+          alert("Ошибка загрузки заявок");
+        }
+      }
+
+      async function takeInProgress(requestId) {
+        if (!confirm("Взять эту заявку в работу?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/requests/${requestId}/take`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                masterId: currentMasterId,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            alert("Заявка взята в работу!");
+            await loadMyRequests();
+          } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.error}`);
+          }
+        } catch (error) {
+          console.error("Ошибка:", error);
+          alert("Ошибка соединения с сервером");
+        }
+      }
+
+      async function completeRequest(requestId) {
+        if (!confirm("Отметить заявку как выполненную?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `http://localhost:3000/api/requests/${requestId}/complete`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                masterId: currentMasterId,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            alert("Заявка завершена!");
+            await loadMyRequests();
+          } else {
+            const error = await response.json();
+            alert(`Ошибка: ${error.error}`);
+          }
+        } catch (error) {
+          console.error("Ошибка:", error);
+          alert("Ошибка соединения с сервером");
+        }
+      }
+    </script>
+  </body>
+</html>
